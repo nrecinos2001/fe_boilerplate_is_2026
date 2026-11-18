@@ -10,6 +10,10 @@ const allowedPatch = [
   /^orders\/[0-9a-f-]{36}\/items\/[0-9a-f-]{36}\/status$/i,
 ];
 
+const allowedPost = [
+  /^out-of-stock\/[0-9a-f-]{36}$/i,
+];
+
 async function handle(
   request: Request,
   context: { params: Promise<{ path: string[] }> },
@@ -22,7 +26,9 @@ async function handle(
   const isAllowed =
     (method === "GET" && allowedGet.has(requestedPath)) ||
     (method === "PATCH" &&
-      allowedPatch.some((pattern) => pattern.test(requestedPath)));
+      allowedPatch.some((pattern) => pattern.test(requestedPath))) ||
+    (method === "POST" &&
+      allowedPost.some((pattern) => pattern.test(requestedPath)));
 
   if (!isAllowed) {
     return NextResponse.json(
@@ -54,11 +60,11 @@ async function handle(
       method,
       headers: {
         Authorization: `Bearer ${token}`,
-        ...(method === "PATCH"
+        ...(method === "PATCH" || method === "POST"
           ? { "Content-Type": "application/json" }
           : {}),
       },
-      ...(method === "PATCH"
+      ...(method === "PATCH" || method === "POST"
         ? { body: await request.text() }
         : {}),
       cache: "no-store",
@@ -77,4 +83,8 @@ async function handle(
   }
 }
 
-export { handle as GET, handle as PATCH };
+export {
+  handle as GET,
+  handle as PATCH,
+  handle as POST,
+};

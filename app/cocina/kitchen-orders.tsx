@@ -17,15 +17,21 @@ type RespuestaComandas = {
 
 type OrderItem = {
   id: string;
+  dishId: string;
   quantity: number;
   status: string;
   dish: {
     name: string;
+    branchDishes: {
+      branchId: string;
+      stockStatus: string;
+    }[];
   };
 };
 
 type KitchenOrder = {
   id: string;
+  branchId: string;
   status: string;
   createdAt: string;
   items: OrderItem[];
@@ -34,6 +40,12 @@ type KitchenOrder = {
       number: number;
     } | null;
   } | null;
+};
+
+type PlatilloSeleccionado = {
+  dishId: string;
+  branchId: string;
+  dishName: string;
 };
 
 async function leerRespuesta(response: Response): Promise<unknown> {
@@ -90,6 +102,29 @@ async function apiH8(path: string, body?: unknown) {
   return datos;
 }
 
+async function apiH9(dishId: string, branchId: string) {
+  const response = await fetch(
+    `/api/cocina/out-of-stock/${encodeURIComponent(dishId)}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ branchId }),
+      credentials: "same-origin",
+      cache: "no-store",
+    },
+  );
+
+  const datos = await leerRespuesta(response);
+
+  if (!response.ok) {
+    throw new Error(obtenerError(datos, response.status));
+  }
+
+  return datos;
+}
+
 function shortId(id: string) {
   return id.slice(0, 8).toUpperCase();
 }
@@ -100,8 +135,14 @@ export default function KitchenOrders() {
   const [cargando, setCargando] = useState(true);
   const [errorH7, setErrorH7] = useState("");
   const [errorH8, setErrorH8] = useState("");
+  const [errorH9, setErrorH9] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [procesandoId, setProcesandoId] = useState<string | null>(null);
+
+  const [platilloSeleccionado, setPlatilloSeleccionado] =
+    useState<PlatilloSeleccionado | null>(null);
+
+  const [agotados, setAgotados] = useState<Set<string>>(new Set());
 
   const cargarComandas = useCallback(async (inicial = false) => {
     if (inicial) setCargando(true);
@@ -264,6 +305,42 @@ export default function KitchenOrders() {
         err instanceof Error
           ? err.message
           : "No se pudo actualizar el platillo.",
+      );
+    } finally {
+      setProcesandoId(null);
+    }
+  };
+
+  const confirmarPlatilloAgotado = async () => {
+    if (!platilloSeleccionado || procesandoId) return;
+
+    const { dishId, branchId, dishName } = platilloSeleccionado;
+    const key = `${branchId}-${dishId}`;
+
+    setProcesandoId(key);
+    setErrorH9("");
+    setMensaje("");
+
+    try {
+      await apiH9(dishId, branchId);
+
+      setAgotados((actuales) => {
+        const nuevos = new Set(actuales);
+        nuevos.add(key);
+        return nuevos;
+      });
+
+      setMensaje(
+        `El platillo "${dishName}" fue marcado como agotado correctamente.`,
+      );
+
+      setPlatilloSeleccionado(null);
+      await actualizarPanel();
+    } catch (err) {
+      setErrorH9(
+        err instanceof Error
+          ? err.message
+          : "No se pudo marcar el platillo como agotado.",
       );
     } finally {
       setProcesandoId(null);
@@ -506,7 +583,7 @@ export default function KitchenOrders() {
                 Comandas en preparación
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Marca cada platillo como listo y finaliza la comanda.
+                Marca cada platillo como listo o agotado y finaliza la comanda.
               </p>
             </div>
 
@@ -516,6 +593,15 @@ export default function KitchenOrders() {
                 className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
               >
                 {errorH8}
+              </div>
+            )}
+
+            {errorH9 && (
+              <div
+                role="alert"
+                className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+              >
+                {errorH9}
               </div>
             )}
 
@@ -566,6 +652,16 @@ export default function KitchenOrders() {
                         {order.items.map((item) => {
                           const ready = item.status === "READY";
                           const key = `${order.id}-${item.id}`;
+                          const stockKey = `${order.branchId}-${item.dishId}`;
+                          const agotado =
+  item.dish.branchDishes.some(
+    (branchDish) =>
+      branchDish.branchId === order.branchId &&
+      branchDish.stockStatus === "OUT_OF_STOCK",
+  ) || agotados.has(stockKey);
+                          const itemProcesando =
+                            procesandoId === key ||
+                            procesandoId === stockKey;
 
                           return (
                             <div
@@ -581,35 +677,68 @@ export default function KitchenOrders() {
                                 </p>
                                 <span
                                   className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-semibold ${
-                                    ready
-                                      ? "bg-green-50 text-green-700"
-                                      : "bg-orange-50 text-orange-700"
+                                    agotado
+                                      ? "bg-red-50 text-red-700"
+                                      : ready
+                                        ? "bg-green-50 text-green-700"
+                                        : "bg-orange-50 text-orange-700"
                                   }`}
                                 >
-                                  {ready ? "Listo" : "En preparación"}
+                                  {agotado
+                                    ? "Agotado"
+                                    : ready
+                                      ? "Listo"
+                                      : "En preparación"}
                                 </span>
                               </div>
 
-                              <button
-                                type="button"
-                                disabled={
-                                  ready ||
-                                  procesandoId !== null
-                                }
-                                onClick={() =>
-                                  void marcarPlatilloListo(
-                                    order.id,
-                                    item.id,
-                                  )
-                                }
-                                className="rounded-xl bg-[#7564e8] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6250d5] disabled:cursor-not-allowed disabled:opacity-40"
-                              >
-                                {procesandoId === key
-                                  ? "Procesando..."
-                                  : ready
-                                    ? "Platillo terminado"
-                                    : "Terminar platillo"}
-                              </button>
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  disabled={
+                                    ready ||
+                                    agotado ||
+                                    procesandoId !== null
+                                  }
+                                  onClick={() =>
+                                    void marcarPlatilloListo(
+                                      order.id,
+                                      item.id,
+                                    )
+                                  }
+                                  className="rounded-xl bg-[#7564e8] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6250d5] disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  {procesandoId === key
+                                    ? "Procesando..."
+                                    : ready
+                                      ? "Platillo terminado"
+                                      : "Terminar platillo"}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  disabled={
+                                    ready ||
+                                    agotado ||
+                                    procesandoId !== null
+                                  }
+                                  onClick={() => {
+                                    setErrorH9("");
+                                    setPlatilloSeleccionado({
+                                      dishId: item.dishId,
+                                      branchId: order.branchId,
+                                      dishName: item.dish.name,
+                                    });
+                                  }}
+                                  className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  {itemProcesando && !ready
+                                    ? "Procesando..."
+                                    : agotado
+                                      ? "Agotado"
+                                      : "Marcar agotado"}
+                                </button>
+                              </div>
                             </div>
                           );
                         })}
@@ -646,10 +775,64 @@ export default function KitchenOrders() {
           </section>
 
           <footer className="mt-10 border-t border-slate-200 py-5 text-center text-xs text-slate-400">
-            Núcleo Digital · Panel de cocina · H7 + H8
+            Núcleo Digital · Panel de cocina · H7 + H8 + H9
           </footer>
         </div>
       </main>
+
+      {platilloSeleccionado && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
+          role="presentation"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirmar-agotado-titulo"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+          >
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-xl text-red-600">
+              !
+            </div>
+
+            <h2
+              id="confirmar-agotado-titulo"
+              className="text-xl font-bold text-[#20233e]"
+            >
+              Confirmar platillo agotado
+            </h2>
+
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              ¿Seguro que deseas marcar{" "}
+              <strong>{platilloSeleccionado.dishName}</strong> como agotado?
+              Dejará de estar disponible para nuevos pedidos en esta sucursal
+              y se notificará a los meseros con comandas afectadas.
+            </p>
+
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                disabled={procesandoId !== null}
+                onClick={() => setPlatilloSeleccionado(null)}
+                className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                disabled={procesandoId !== null}
+                onClick={() => void confirmarPlatilloAgotado()}
+                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {procesandoId !== null
+                  ? "Procesando..."
+                  : "Sí, marcar agotado"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
