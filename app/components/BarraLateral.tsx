@@ -35,6 +35,7 @@ const opcionesPorRol: Record<RolUsuario, Opcion[]> = {
       href: "/cliente/pedido-para-llevar",
       icono: "llevar",
     },
+    { titulo: "Mis puntos", href: "/cliente/puntos", icono: "puntos" },
   ],
   COCINA: [{ titulo: "Inicio", href: "/", icono: "inicio" }],
   GERENTE_GENERAL: [
@@ -103,6 +104,12 @@ function Icono({ nombre, size = 20 }: { nombre: string; size?: number }) {
         <svg {...base}>
           <path d="M5 9h14l-1 12H6L5 9Z" />
           <path d="M9 9V6a3 3 0 0 1 6 0v3" />
+        </svg>
+      );
+    case "puntos":
+      return (
+        <svg {...base}>
+          <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" />
         </svg>
       );
     default:
