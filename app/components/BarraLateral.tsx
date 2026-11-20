@@ -20,7 +20,8 @@ const opcionesPorRol: Record<RolUsuario, Opcion[]> = {
     { titulo: "Inicio", href: "/", icono: "inicio" },
     { titulo: "Menú", href: "/gerente/menu", icono: "menu" },
     { titulo: "Inventario", href: "/gerente/inventario", icono: "inventario" },
-    { titulo: "Reportes", icono: "cuadro" },
+    { titulo: "Ventas", href: "/gerente/reportes/ventas", icono: "ventas" },
+    { titulo: "Horarios pico", href: "/gerente/reportes/horarios-pico", icono: "reloj" },
     { titulo: "Configuración", icono: "cuadro" },
   ],
   MESERO: [
@@ -38,10 +39,6 @@ const opcionesPorRol: Record<RolUsuario, Opcion[]> = {
     { titulo: "Mis puntos", href: "/cliente/puntos", icono: "puntos" },
   ],
   COCINA: [{ titulo: "Inicio", href: "/", icono: "inicio" }],
-  GERENTE_GENERAL: [
-    { titulo: "Inicio", href: "/", icono: "inicio" },
-    { titulo: "Horarios pico", href: "/gerente-general/reportes/horarios-pico", icono: "reloj" },
-  ],
 };
 
 const etiquetasRol: Record<RolUsuario, string> = {
@@ -49,7 +46,6 @@ const etiquetasRol: Record<RolUsuario, string> = {
   MESERO: "Mesero",
   COCINA: "Cocina",
   CLIENTE: "Cliente",
-  GERENTE_GENERAL: "Gerente general",
 };
 
 function Icono({ nombre, size = 20 }: { nombre: string; size?: number }) {
@@ -83,6 +79,12 @@ function Icono({ nombre, size = 20 }: { nombre: string; size?: number }) {
         <svg {...base}>
           <path d="m3 7 9-4 9 4-9 4-9-4Z" />
           <path d="M3 7v10l9 4 9-4V7M12 11v10" />
+        </svg>
+      );
+    case "ventas":
+      return (
+        <svg {...base}>
+          <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
         </svg>
       );
     case "reloj":
