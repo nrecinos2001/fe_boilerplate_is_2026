@@ -40,6 +40,7 @@ const opcionesPorRol: Record<RolUsuario, Opcion[]> = {
     },
     { titulo: "Mis puntos", href: "/cliente/puntos", icono: "puntos" },
     { titulo: "Beneficios", href: "/cliente/beneficios", icono: "beneficios" },
+    { titulo: "Mis reseñas", href: "/cliente/resenas", icono: "estrella" },
   ],
   COCINA: [{ titulo: "Inicio", href: "/", icono: "inicio" }],
 };
