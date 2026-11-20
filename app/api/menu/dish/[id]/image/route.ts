@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 
-const API_URL = (process.env.API_URL || "http://localhost:3000/api/v1").replace(/\/+$/, "");
+const API_URL = (process.env.API_URL || "").replace(/\/+$/, "");
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  if (!API_URL) return NextResponse.json({ message: "API_URL no configurada" }, { status: 500 });
   const token = await getSession();
   if (!token) return NextResponse.json({ message: "No autorizado" }, { status: 401 });
   const { id } = await context.params;

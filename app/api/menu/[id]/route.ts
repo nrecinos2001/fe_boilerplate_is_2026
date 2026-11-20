@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 
 const API_URL = (
   process.env.API_URL ||
-  "http://localhost:3000/api/v1"
+  ""
 ).replace(/\/+$/, "");
 
 type RouteContext = {
@@ -18,6 +18,7 @@ async function procesarSolicitud(
   context: RouteContext,
   metodo: "PUT" | "PATCH"
 ) {
+  if (!API_URL) return NextResponse.json({ message: "API_URL no configurada" }, { status: 500 });
   const token = await getSession();
 
   if (!token) {

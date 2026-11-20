@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-const API_URL = (process.env.API_URL || "http://localhost:3000/api/v1").replace(/\/+$/, "");
+const API_URL = (process.env.API_URL || "").replace(/\/+$/, "");
 export async function GET(_request: Request, context: { params: Promise<{ filename: string }> }) {
+  if (!API_URL) return NextResponse.json({ message: "API_URL no configurada" }, { status: 500 });
   const { filename } = await context.params;
   if (!/^[0-9a-f-]{36}\.(jpg|png|webp)$/.test(filename)) return new NextResponse(null, { status: 404 });
   try {
