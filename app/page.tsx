@@ -17,7 +17,7 @@ type Module = {
   title: string;
   href: string;
   description: string;
-  icon: "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart";
+  icon: "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart" | "star";
 };
 
 const modules: Record<UserRole, Module[]> = {
@@ -49,6 +49,13 @@ const modules: Record<UserRole, Module[]> = {
       description:
         "Consulta las ventas totales por sucursal y período.",
       icon: "chart",
+    },
+    {
+      title: "Platillos más vendidos",
+      href: "/gerente/reportes/platillos",
+      description:
+        "Consulta los 10 platillos con más unidades vendidas.",
+      icon: "star",
     },
     {
       title: "Horarios pico",
@@ -97,7 +104,7 @@ function Icon({
   name,
   size = 22,
 }: {
-  name: "home" | "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart" | "logout" | "arrow";
+  name: "home" | "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart" | "star" | "logout" | "arrow";
   size?: number;
 }) {
   const props = {
@@ -113,6 +120,13 @@ function Icon({
   };
 
   switch (name) {
+    case "star":
+      return (
+        <svg {...props}>
+          <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
+        </svg>
+      );
+
     case "chart":
       return (
         <svg {...props}>

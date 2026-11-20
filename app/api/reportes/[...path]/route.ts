@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 // Rutas del backend que usan los reportes del gerente general (Épica 10).
-const allowed = new Map([["branches", ["GET"]], ["reports/sales", ["GET"]], ["reports/peak-hours", ["GET"]]]);
+const allowed = new Map([["branches", ["GET"]], ["reports/sales", ["GET"]], ["reports/top-dishes", ["GET"]], ["reports/peak-hours", ["GET"]]]);
 async function handle(request: Request, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
   const endpoint = path.join("/");

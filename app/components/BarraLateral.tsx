@@ -21,6 +21,7 @@ const opcionesPorRol: Record<RolUsuario, Opcion[]> = {
     { titulo: "Menú", href: "/gerente/menu", icono: "menu" },
     { titulo: "Inventario", href: "/gerente/inventario", icono: "inventario" },
     { titulo: "Ventas", href: "/gerente/reportes/ventas", icono: "ventas" },
+    { titulo: "Platillos más vendidos", href: "/gerente/reportes/platillos", icono: "estrella" },
     { titulo: "Horarios pico", href: "/gerente/reportes/horarios-pico", icono: "reloj" },
     { titulo: "Configuración", icono: "cuadro" },
   ],
@@ -85,6 +86,12 @@ function Icono({ nombre, size = 20 }: { nombre: string; size?: number }) {
       return (
         <svg {...base}>
           <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+        </svg>
+      );
+    case "estrella":
+      return (
+        <svg {...base}>
+          <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
         </svg>
       );
     case "reloj":
