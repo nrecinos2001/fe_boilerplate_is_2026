@@ -49,6 +49,7 @@ export type PedidoTakeawayCliente = {
   status: string;
   total: number | string;
   createdAt: string;
+  hasReview: boolean;
 };
 
 export type CompraParaCanje =
