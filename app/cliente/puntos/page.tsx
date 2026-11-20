@@ -4,6 +4,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import BarraLateral from "@/app/components/BarraLateral";
 import CampanaNotificaciones from "@/app/components/CampanaNotificaciones";
+import {
+  consultarLealtad,
+  LoyaltyApiError,
+  obtenerSaldoLealtad,
+} from "@/lib/services/loyalty";
 
 type Movimiento = {
   id: string;
@@ -77,19 +82,23 @@ function formatoFecha(valor: string) {
 }
 
 async function consultar<T>(url: string): Promise<T> {
-  const respuesta = await fetch(url, { cache: "no-store" });
-  const datos: unknown = await respuesta.json().catch(() => null);
-
-  if (!respuesta.ok) {
-    const cuerpo = objeto(datos);
-    const mensaje = typeof cuerpo?.message === "string" ? cuerpo.message : "";
-    if (respuesta.status === 401) throw new Error("AUTH_REQUIRED");
-    if (respuesta.status === 403) throw new Error("No tienes permiso para consultar esta información.");
-    if (respuesta.status === 404) throw new Error("La información de puntos no está disponible.");
-    throw new Error(mensaje || "No se pudo consultar la información de puntos. Intenta de nuevo.");
+  try {
+    return await consultarLealtad<T>(url);
+  } catch (error) {
+    if (error instanceof LoyaltyApiError) {
+      if (error.status === 401) throw new Error("AUTH_REQUIRED");
+      if (error.status === 403) {
+        throw new Error("No tienes permiso para consultar esta información.");
+      }
+      if (error.status === 404) {
+        throw new Error("La información de puntos no está disponible.");
+      }
+      throw new Error(
+        error.message || "No se pudo consultar la información de puntos. Intenta de nuevo.",
+      );
+    }
+    throw error;
   }
-
-  return datos as T;
 }
 
 export default function PuntosPage() {
@@ -106,7 +115,7 @@ export default function PuntosPage() {
     async function cargar() {
       setCargando(true);
       const [resultadoSaldo, resultadoMovimientos] = await Promise.allSettled([
-        consultar<unknown>("/api/cliente/loyalty/balance"),
+        obtenerSaldoLealtad(),
         consultar<unknown>("/api/cliente/loyalty/movements"),
       ]);
 

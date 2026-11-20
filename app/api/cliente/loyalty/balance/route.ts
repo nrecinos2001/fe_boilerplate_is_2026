@@ -17,7 +17,7 @@ export async function GET() {
   }
 
   try {
-    const response = await fetch(`${api}/api/v1/loyalty/points/balance`, {
+    const response = await fetch(`${api}/loyalty/points/balance`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
