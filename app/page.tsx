@@ -17,7 +17,7 @@ type Module = {
   title: string;
   href: string;
   description: string;
-  icon: "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart" | "star";
+  icon: "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart" | "star" | "compare";
 };
 
 const modules: Record<UserRole, Module[]> = {
@@ -64,6 +64,13 @@ const modules: Record<UserRole, Module[]> = {
         "Consulta las horas con más pedidos de cada sucursal.",
       icon: "clock",
     },
+    {
+      title: "Comparación de sucursales",
+      href: "/gerente/reportes/comparacion-sucursales",
+      description:
+        "Compara el desempeño de las sucursales e identifica cuál necesita atención.",
+      icon: "compare",
+    },
   ],
   MESERO: [
     {
@@ -104,7 +111,7 @@ function Icon({
   name,
   size = 22,
 }: {
-  name: "home" | "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart" | "star" | "logout" | "arrow";
+  name: "home" | "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart" | "star" | "compare" | "logout" | "arrow";
   size?: number;
 }) {
   const props = {
@@ -120,6 +127,13 @@ function Icon({
   };
 
   switch (name) {
+    case "compare":
+      return (
+        <svg {...props}>
+          <path d="M3 21h18M6 21V9M12 21V4M18 21v-6" />
+        </svg>
+      );
+
     case "star":
       return (
         <svg {...props}>
