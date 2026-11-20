@@ -8,8 +8,7 @@ export type RolUsuario =
   | "GERENTE"
   | "MESERO"
   | "COCINA"
-  | "CLIENTE"
-  | "GERENTE_GENERAL";
+  | "CLIENTE";
 
 export type UsuarioSesion = {
   id: string;

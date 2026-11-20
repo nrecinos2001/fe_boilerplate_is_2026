@@ -20,7 +20,7 @@ const opcionesPorRol: Record<RolUsuario, Opcion[]> = {
     { titulo: "Inicio", href: "/", icono: "inicio" },
     { titulo: "Menú", href: "/gerente/menu", icono: "menu" },
     { titulo: "Inventario", href: "/gerente/inventario", icono: "inventario" },
-    { titulo: "Reportes", icono: "cuadro" },
+    { titulo: "Horarios pico", href: "/gerente/reportes/horarios-pico", icono: "reloj" },
     { titulo: "Configuración", icono: "cuadro" },
   ],
   MESERO: [
@@ -38,10 +38,6 @@ const opcionesPorRol: Record<RolUsuario, Opcion[]> = {
     { titulo: "Mis puntos", href: "/cliente/puntos", icono: "puntos" },
   ],
   COCINA: [{ titulo: "Inicio", href: "/", icono: "inicio" }],
-  GERENTE_GENERAL: [
-    { titulo: "Inicio", href: "/", icono: "inicio" },
-    { titulo: "Horarios pico", href: "/gerente-general/reportes/horarios-pico", icono: "reloj" },
-  ],
 };
 
 const etiquetasRol: Record<RolUsuario, string> = {
@@ -49,7 +45,6 @@ const etiquetasRol: Record<RolUsuario, string> = {
   MESERO: "Mesero",
   COCINA: "Cocina",
   CLIENTE: "Cliente",
-  GERENTE_GENERAL: "Gerente general",
 };
 
 function Icono({ nombre, size = 20 }: { nombre: string; size?: number }) {

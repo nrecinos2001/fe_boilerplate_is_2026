@@ -5,7 +5,7 @@ import { logout } from "@/app/actions/auth";
 import CampanaNotificaciones from "@/app/components/CampanaNotificaciones";
 import { getSession } from "@/lib/session";
 
-type UserRole = "GERENTE" | "MESERO" | "COCINA" | "CLIENTE" | "GERENTE_GENERAL";
+type UserRole = "GERENTE" | "MESERO" | "COCINA" | "CLIENTE";
 
 type CurrentUser = {
   id: string;
@@ -43,6 +43,13 @@ const modules: Record<UserRole, Module[]> = {
         "Consulta las existencias y registra entradas y salidas de insumos.",
       icon: "inventory",
     },
+    {
+      title: "Horarios pico",
+      href: "/gerente/reportes/horarios-pico",
+      description:
+        "Consulta las horas con más pedidos de cada sucursal.",
+      icon: "clock",
+    },
   ],
   MESERO: [
     {
@@ -70,15 +77,6 @@ const modules: Record<UserRole, Module[]> = {
       icon: "takeaway",
     },
   ],
-  GERENTE_GENERAL: [
-    {
-      title: "Horarios pico",
-      href: "/gerente-general/reportes/horarios-pico",
-      description:
-        "Consulta las horas con más pedidos de cada sucursal.",
-      icon: "clock",
-    },
-  ],
 };
 
 const roleLabels: Record<UserRole, string> = {
@@ -86,7 +84,6 @@ const roleLabels: Record<UserRole, string> = {
   MESERO: "Mesero",
   COCINA: "Cocina",
   CLIENTE: "Cliente",
-  GERENTE_GENERAL: "Gerente general",
 };
 
 function Icon({

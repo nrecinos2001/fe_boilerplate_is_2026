@@ -101,7 +101,7 @@ export default function HorariosPicoPage() {
   useEffect(() => {
     queueMicrotask(async () => {
       const actual = await cargarUsuario();
-      if (actual && actual.role !== "GERENTE_GENERAL") {
+      if (actual && actual.role !== "GERENTE") {
         setSinPermiso(true);
         return;
       }
