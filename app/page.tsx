@@ -17,7 +17,7 @@ type Module = {
   title: string;
   href: string;
   description: string;
-  icon: "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock";
+  icon: "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart";
 };
 
 const modules: Record<UserRole, Module[]> = {
@@ -42,6 +42,13 @@ const modules: Record<UserRole, Module[]> = {
       description:
         "Consulta las existencias y registra entradas y salidas de insumos.",
       icon: "inventory",
+    },
+    {
+      title: "Reporte de ventas",
+      href: "/gerente/reportes/ventas",
+      description:
+        "Consulta las ventas totales por sucursal y período.",
+      icon: "chart",
     },
     {
       title: "Horarios pico",
@@ -90,7 +97,7 @@ function Icon({
   name,
   size = 22,
 }: {
-  name: "home" | "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "logout" | "arrow";
+  name: "home" | "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart" | "logout" | "arrow";
   size?: number;
 }) {
   const props = {
@@ -106,6 +113,13 @@ function Icon({
   };
 
   switch (name) {
+    case "chart":
+      return (
+        <svg {...props}>
+          <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+        </svg>
+      );
+
     case "clock":
       return (
         <svg {...props}>
