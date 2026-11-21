@@ -1,26 +1,57 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Tema global de Habita.
+ *
+ * Paleta base (usar de preferencia los tokens semánticos de abajo):
+ *   forest #0A3B25 · moss #2A6151 · sage #B2B7AA · cream #FCF7F0 · sand #D8C2A4
+ *
+ * Los tonos intermedios se obtienen con el modificador de opacidad de
+ * Tailwind, p. ej. `bg-sand/30` o `border-sage/60`.
+ */
+@theme {
+  /* Paleta */
+  --color-forest: #0a3b25;
+  --color-moss: #2a6151;
+  --color-sage: #b2b7aa;
+  --color-cream: #fcf7f0;
+  --color-sand: #d8c2a4;
+
+  /* Tokens semánticos */
+  --color-background: var(--color-cream);
+  --color-foreground: var(--color-forest);
+  --color-surface: color-mix(in oklab, var(--color-cream) 40%, white);
+  --color-primary: var(--color-forest);
+  --color-primary-foreground: var(--color-cream);
+  --color-secondary: var(--color-moss);
+  --color-muted: color-mix(in oklab, var(--color-moss) 75%, var(--color-cream));
+  --color-accent: var(--color-sand);
+  --color-border: color-mix(in oklab, var(--color-sage) 60%, var(--color-cream));
+  --color-ring: var(--color-moss);
+  --color-danger: #a23b2a;
+
+  /* Alias que usan notificaciones y preferencias (components/residente, notificaciones,
+     preferencias). Nunca se habían definido: sin ellos la barra lateral quedaba sin fondo. */
+  --color-habita-900: var(--color-forest);
+  --color-habita-800: var(--color-moss);
+  --color-habita-700: var(--color-moss);
+  --color-habita-100: color-mix(in oklab, var(--color-sage) 30%, var(--color-cream));
+  --color-crema: var(--color-cream);
+  --color-arena: color-mix(in oklab, var(--color-sand) 35%, var(--color-cream));
+  --color-borde: var(--color-border);
+
+  /* Tipografía (las variables las define next/font en app/layout.tsx) */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), ui-serif, Georgia, serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    @apply bg-background font-sans text-foreground;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+
+  }

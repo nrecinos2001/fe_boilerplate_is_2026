@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createSession, deleteSession } from "@/lib/session";
+import { INICIO, esRolPermitido } from "@/lib/rutas";
 
 export type LoginState = {
   error?: string;
@@ -10,8 +11,6 @@ export type LoginState = {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Llama a la API de autenticación. Devuelve el token si las credenciales son
-// válidas, o null si la API responde 401/403.
 async function authenticate(email: string, password: string) {
   const apiUrl = process.env.API_URL;
   if (!apiUrl) {
@@ -32,7 +31,6 @@ async function authenticate(email: string, password: string) {
     throw new Error(`auth/login respondió ${res.status}`);
   }
 
-  // Ajustar al formato de respuesta real de la API.
   const data = await res.json();
   const token: string | undefined =
     data.token ?? data.accessToken ?? data.access_token;
@@ -40,6 +38,20 @@ async function authenticate(email: string, password: string) {
     throw new Error("La respuesta de auth/login no incluye un token.");
   }
   return token;
+}
+
+/** Rol de la cuenta recién autenticada (el JWT no lo incluye). */
+async function rolDe(token: string): Promise<unknown> {
+  const apiUrl = process.env.API_URL!;
+  const res = await fetch(new URL("auth/me", apiUrl.replace(/\/?$/, "/")), {
+    headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`auth/me respondió ${res.status}`);
+  }
+  const usuario: { role?: unknown } = await res.json();
+  return usuario.role;
 }
 
 export async function login(
@@ -57,8 +69,10 @@ export async function login(
   }
 
   let token: string | null;
+  let role: unknown;
   try {
     token = await authenticate(email, password);
+    role = token ? await rolDe(token) : undefined;
   } catch (error) {
     console.error("Error al iniciar sesión:", error);
     return { error: "No se pudo iniciar sesión. Intenta más tarde.", email };
@@ -66,9 +80,13 @@ export async function login(
   if (!token) {
     return { error: "Correo o contraseña incorrectos.", email };
   }
+  // Solo residentes, administración y seguridad usan la aplicación.
+  if (!esRolPermitido(role)) {
+    return { error: "Tu cuenta no tiene acceso a Habita.", email };
+  }
 
   await createSession(token);
-  redirect("/");
+  redirect(INICIO);
 }
 
 export async function logout() {

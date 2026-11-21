@@ -1,0 +1,33 @@
+# Frontend en un proyecto Compose propio. El backend se levanta con el
+# docker-compose.yml de be_boilerplate_is_2026, que publica la API en el puerto
+# ${PORT:-3000} del host. Este contenedor llega a ella por host.docker.internal.
+#
+# Variables (en un archivo .env junto a este compose o en el entorno):
+#   API_URL                  URL de la API vista desde el contenedor, con /api/v1.
+#   NEXT_PUBLIC_BACKEND_URL  URL del backend vista desde el navegador (sin /api/v1).
+#                            Se incrusta al compilar: `docker compose up --build` tras cambiarla.
+#   NEXT_PUBLIC_MONEDA       Moneda de los importes (ISO 4217). También se incrusta al compilar.
+#   NEXT_PUBLIC_CONDOMINIO   Nombre del condominio en la interfaz. También se incrusta al compilar.
+#   COOKIE_SECURE            false solo si el sitio se sirve por HTTP sin TLS fuera de localhost.
+#   FRONTEND_PORT            Puerto del host donde se publica el frontend.
+name: si-fe-boilerplate
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:3000}
+        NEXT_PUBLIC_MONEDA: ${NEXT_PUBLIC_MONEDA:-USD}
+        NEXT_PUBLIC_CONDOMINIO: ${NEXT_PUBLIC_CONDOMINIO:-Condominio}
+    container_name: si_fe_web
+    restart: unless-stopped
+    environment:
+      API_URL: ${API_URL:-http://host.docker.internal:3000/api/v1}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+    extra_hosts:
+      # En Linux host.docker.internal no existe por defecto.
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '${FRONTEND_PORT:-3001}:3000'

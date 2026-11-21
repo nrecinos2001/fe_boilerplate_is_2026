@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Plataforma de Gestión de Condominios
 
-## Getting Started
+Plataforma web que centraliza la administración de un condominio: reportes de incidencias y mantenimiento, control de acceso de visitas y demás procesos entre la administración, los residentes y el personal de seguridad.
 
-First, run the development server:
+**Equipo:** Terraplanistas
+**Proyecto asignado:** **Sistema de gestión de condominios**
+**Curso:** Ingeniería de Software, UCA, ciclo 02/2026, Sección **02**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Ambiente desplegado
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Componente | URL |
+|---|---|
+| Frontend | **[COMPLETAR: https://...]** |
+| Documentación de la API (Swagger) | **[https://be-boilerplate-is-2026.onrender.com/api/docs]** |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Los usuarios de prueba se entregan en Moodle, no en este repositorio.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Integrantes
 
-## Learn More
+| Nombre | Carnet | Usuario de GitHub | Módulos o historias principales |
+|---|---|---|---|
+| **Moisés Marco Centi Zepeda** | **00054123** | **moicenti** | **H7-H12 y H35** |
+| **Jorge Eduardo González Cardoza** | **00016823** | **jorgon29** | **H1-H6 y H34** |
+| **Juan José Castellanos Manajo** | **00026223** | **JuanJoseCastellanosMajano** | **H23-H27, H30-H31** |
+| **[COMPLETAR]** | **[COMPLETAR]** | **[@usuario]** | **[...]** |
 
-To learn more about Next.js, take a look at the following resources:
+## Documentación
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. [Guía de uso](docs/01-guia-de-uso.md)
+2. [Arquitectura](docs/02-arquitectura.md)
+3. [Modelo de datos](docs/03-modelo-de-datos.md)
+4. [API](docs/04-api.md)
+5. [Instalación local](docs/05-instalacion-local.md)
+6. [Despliegue](docs/06-despliegue.md)
+7. [Forma de trabajo](docs/07-forma-de-trabajo.md)
+8. [Historias por módulo](docs/08-historias.md)
+9. [Problemas conocidos](docs/09-problemas-conocidos.md)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Repositorios
 
-## Deploy on Vercel
+El proyecto se divide en dos repositorios:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [**Frontend (React)**](https://github.com/moicenti/be_boilerplate_is_2026)
+- [**Backend (NestJS)**](https://github.com/moicenti/fe_boilerplate_is_2026)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+La documentación completa está en [Frontend](https://github.com/moicenti/be_boilerplate_is_2026).
