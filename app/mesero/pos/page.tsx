@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 type Table = {
 
@@ -69,6 +70,90 @@ type Item = {
   notes: string;
 
 };
+
+type ReadyDeliveryOrder = {
+  id: string;
+  orderNumber: string | null;
+  status: string;
+  createdAt: string;
+  items: {
+    id: string;
+    quantity: number;
+    notes: string | null;
+    dish: { name: string };
+  }[];
+  account?: {
+    table?: { number: number } | null;
+  } | null;
+};
+
+class DeliveryApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "DeliveryApiError";
+    this.status = status;
+  }
+}
+
+async function deliveryApi(path: string, method: "GET" | "PATCH" = "GET") {
+  const response = await fetch(`/api/entregas/${path}`, {
+    method,
+    cache: "no-store",
+  });
+  const data: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const body =
+      data !== null && typeof data === "object"
+        ? (data as Record<string, unknown>)
+        : null;
+    const rawMessage = body?.message;
+    const message = Array.isArray(rawMessage)
+      ? rawMessage.filter((part): part is string => typeof part === "string").join(", ")
+      : typeof rawMessage === "string"
+        ? rawMessage
+        : `Error ${response.status}`;
+    throw new DeliveryApiError(response.status, message);
+  }
+
+  return data;
+}
+
+function deliveryErrorMessage(error: unknown) {
+  if (error instanceof DeliveryApiError) {
+    if (error.status === 401) return "Tu sesión expiró. Inicia sesión de nuevo.";
+    if (error.status === 403) return "No tienes permiso para gestionar esta entrega.";
+    if (error.status === 404) return "La comanda ya no está disponible.";
+    if (error.status === 409) return "La comanda ya no está lista para entregar. Actualiza la lista.";
+    return error.message || "No se pudieron cargar las entregas.";
+  }
+  return error instanceof Error && error.message
+    ? error.message
+    : "No se pudo conectar con el servicio de entregas.";
+}
+
+function deliveryDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Fecha no disponible";
+  return new Intl.DateTimeFormat("es", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function deliveryIdentifier(order: ReadyDeliveryOrder, result: unknown) {
+  const orderNumber = order.orderNumber?.trim();
+  if (orderNumber) return orderNumber;
+
+  if (result !== null && typeof result === "object") {
+    const resultId = (result as Record<string, unknown>).id;
+    if (typeof resultId === "string" && resultId.trim()) return resultId;
+  }
+
+  return order.id;
+}
 
 async function api(path: string, body?: unknown, method?: "PATCH") {
 
@@ -300,6 +385,8 @@ function tableStatus(status: string) {
 
 export default function POS() {
 
+  const router = useRouter();
+
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -320,6 +407,18 @@ export default function POS() {
 
   const [savedOrders, setSavedOrders] = useState<SavedOrder[]>([]);
 
+  const [readyOrders, setReadyOrders] = useState<ReadyDeliveryOrder[]>([]);
+
+  const [loadingDeliveries, setLoadingDeliveries] = useState(true);
+
+  const [deliveryError, setDeliveryError] = useState("");
+
+  const [deliveryMessage, setDeliveryMessage] = useState("");
+
+  const [deliveringId, setDeliveringId] = useState<string | null>(null);
+
+  const deliveryInFlight = useRef(false);
+
   const [editedQuantities, setEditedQuantities] = useState<
 
     Record<string, number>
@@ -335,6 +434,110 @@ export default function POS() {
   const [error, setError] = useState("");
 
   const [search, setSearch] = useState("");
+
+  const refreshReadyOrders = useCallback(async () => {
+
+    setLoadingDeliveries(true);
+
+    setDeliveryError("");
+
+    try {
+
+      const data = await deliveryApi("orders/ready-for-delivery");
+
+      if (!Array.isArray(data)) {
+
+        throw new Error("El servidor devolvió una lista de comandas inválida.");
+
+      }
+
+      setReadyOrders(data as ReadyDeliveryOrder[]);
+
+    } catch (err) {
+
+      if (err instanceof DeliveryApiError && err.status === 401) {
+
+        router.push("/login");
+
+      }
+
+      setDeliveryError(deliveryErrorMessage(err));
+
+    } finally {
+
+      setLoadingDeliveries(false);
+
+    }
+
+  }, [router]);
+
+  useEffect(() => {
+
+    let cancelled = false;
+
+    queueMicrotask(() => {
+
+      if (!cancelled) void refreshReadyOrders();
+
+    });
+
+    return () => {
+
+      cancelled = true;
+
+    };
+
+  }, [refreshReadyOrders]);
+
+  async function markDelivered(order: ReadyDeliveryOrder) {
+
+    if (deliveryInFlight.current) return;
+
+    deliveryInFlight.current = true;
+
+    setDeliveringId(order.id);
+
+    setDeliveryError("");
+
+    setDeliveryMessage("");
+
+    try {
+
+      const result = await deliveryApi(
+
+        `kitchen/orders/${encodeURIComponent(order.id)}/delivery`,
+
+        "PATCH",
+
+      );
+
+      setReadyOrders((current) => current.filter((item) => item.id !== order.id));
+
+      setDeliveryMessage(
+        `La comanda ${deliveryIdentifier(order, result)} se marcó como entregada.`,
+      );
+
+      await refreshReadyOrders();
+
+    } catch (err) {
+
+      if (err instanceof DeliveryApiError && err.status === 401) {
+
+        router.push("/login");
+
+      }
+
+      setDeliveryError(deliveryErrorMessage(err));
+
+    } finally {
+
+      deliveryInFlight.current = false;
+
+      setDeliveringId(null);
+
+    }
+
+  }
 
   const refresh = useCallback(async () => {
 
@@ -909,6 +1112,186 @@ export default function POS() {
             </div>
 
           )}
+
+          {/* H8: comandas listas para entregar */}
+
+          <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+
+              <div className="flex items-center gap-3">
+
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f0edff] text-[#7564e8]">
+
+                  <Icon name="send" />
+
+                </div>
+
+                <div>
+
+                  <h2 className="text-lg font-bold text-[#20233e]">
+
+                    Comandas listas para entregar
+
+                  </h2>
+
+                  <p className="text-xs text-slate-400">
+
+                    Consulta las comandas asignadas a tu usuario.
+
+                  </p>
+
+                </div>
+
+              </div>
+
+              <button
+
+                type="button"
+
+                disabled={loadingDeliveries || deliveringId !== null}
+
+                onClick={() => void refreshReadyOrders()}
+
+                className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+
+              >
+
+                <Icon name="refresh" size={16} />
+
+                Actualizar comandas
+
+              </button>
+
+            </div>
+
+            {deliveryMessage && (
+
+              <p role="status" className="mb-4 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+
+                {deliveryMessage}
+
+              </p>
+
+            )}
+
+            {deliveryError && (
+
+              <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+
+                <p>{deliveryError}</p>
+
+                <button
+
+                  type="button"
+
+                  disabled={loadingDeliveries || deliveringId !== null}
+
+                  onClick={() => void refreshReadyOrders()}
+
+                  className="mt-2 font-semibold underline disabled:opacity-50"
+
+                >
+
+                  Reintentar
+
+                </button>
+
+              </div>
+
+            )}
+
+            {loadingDeliveries ? (
+
+              <p role="status" className="rounded-xl bg-slate-50 p-5 text-sm text-slate-500">
+
+                Cargando comandas listas...
+
+              </p>
+
+            ) : readyOrders.length === 0 ? (
+
+              <p className="rounded-xl border border-dashed border-slate-200 py-8 text-center text-sm text-slate-500">
+
+                No hay comandas listas para entregar.
+
+              </p>
+
+            ) : (
+
+              <div className="space-y-4">
+
+                {readyOrders.map((order) => (
+
+                  <article key={order.id} className="rounded-xl border border-slate-200 p-5">
+
+                    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+
+                      <div>
+
+                        <p className="text-sm font-bold text-[#252944]">
+
+                          Comanda {order.orderNumber?.trim() || order.id}
+
+                        </p>
+
+                        <p className="mt-1 text-sm text-slate-500">
+
+                          Mesa {order.account?.table?.number ?? "—"} · {deliveryDate(order.createdAt)}
+
+                        </p>
+
+                      </div>
+
+                      <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
+
+                        Lista para entregar
+
+                      </span>
+
+                    </div>
+
+                    <ul className="mb-4 space-y-2 rounded-lg bg-[#fafbfe] p-3 text-sm text-slate-600">
+
+                      {order.items.map((item) => (
+
+                        <li key={item.id}>
+
+                          {item.quantity} × {item.dish.name}
+
+                          {item.notes && <span className="ml-2 text-xs text-slate-400">({item.notes})</span>}
+
+                        </li>
+
+                      ))}
+
+                    </ul>
+
+                    <button
+
+                      type="button"
+
+                      disabled={deliveringId !== null}
+
+                      onClick={() => void markDelivered(order)}
+
+                      className="rounded-xl bg-[#7564e8] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6250d5] disabled:cursor-not-allowed disabled:opacity-50"
+
+                    >
+
+                      {deliveringId === order.id ? "Marcando como entregada..." : "Marcar como entregada"}
+
+                    </button>
+
+                  </article>
+
+                ))}
+
+              </div>
+
+            )}
+
+          </section>
 
           {/* SELECCIONAR MESA */}
 
