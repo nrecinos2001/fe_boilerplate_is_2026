@@ -1,5 +1,6 @@
 
 import Link from "next/link";
+import { Welcome } from "./components/Welcome";
 import { redirect } from "next/navigation";
 import { logout } from "@/app/actions/auth";
 import CampanaNotificaciones from "@/app/components/CampanaNotificaciones";
@@ -246,7 +247,7 @@ export default async function Home() {
   const token = await getSession();
 
   if (!token) {
-    redirect("/login");
+    return <Welcome />;
   }
 
   const apiUrl = process.env.API_URL;
@@ -266,8 +267,8 @@ export default async function Home() {
   );
 
   if (response.status === 401) {
-    redirect("/login");
-  }
+  return <Welcome />;
+}
 
   if (!response.ok) {
     throw new Error("No se pudo obtener el usuario.");
