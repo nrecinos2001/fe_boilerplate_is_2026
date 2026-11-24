@@ -17,7 +17,7 @@ type Module = {
   title: string;
   href: string;
   description: string;
-  icon: "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart" | "star" | "compare";
+  icon: "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart" | "star" | "compare" | "reservation";
 };
 
 const modules: Record<UserRole, Module[]> = {
@@ -80,9 +80,23 @@ const modules: Record<UserRole, Module[]> = {
         "Gestiona mesas, registra pedidos y atiende a los clientes.",
       icon: "pos",
     },
+    {
+      title: "Disponibilidad de mesas",
+      href: "/mesero/mesas/disponibilidad",
+      description:
+        "Consulta las mesas libres, ocupadas y reservadas para una fecha y hora.",
+      icon: "view",
+    },
   ],
   COCINA: [],
   CLIENTE: [
+    {
+      title: "Reservar mesa",
+      href: "/reservas/nueva",
+      description:
+        "Selecciona una sucursal, fecha, hora y cantidad de personas para reservar una mesa.",
+      icon: "reservation",
+    },
     {
       title: "Consultar menú",
       href: "/menu",
@@ -111,7 +125,7 @@ function Icon({
   name,
   size = 22,
 }: {
-  name: "home" | "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart" | "star" | "compare" | "logout" | "arrow";
+  name: "home" | "menu" | "pos" | "takeaway" | "view" | "inventory" | "clock" | "chart" | "star" | "compare" | "reservation" | "logout" | "arrow";
   size?: number;
 }) {
   const props = {
@@ -184,6 +198,14 @@ function Icon({
         <svg {...props}>
           <path d="M5 9h14l-1 12H6L5 9Z" />
           <path d="M9 9V6a3 3 0 0 1 6 0v3" />
+        </svg>
+      );
+
+    case "reservation":
+      return (
+        <svg {...props}>
+          <rect x="3" y="5" width="18" height="16" rx="2" />
+          <path d="M16 3v4M8 3v4M3 10h18M8 14h3M8 17h6" />
         </svg>
       );
 

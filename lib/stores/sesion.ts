@@ -2,8 +2,6 @@
 
 import { create } from "zustand";
 
-// Estado global de la sesión (decisión técnica del documento: Zustand):
-// sesión, rol y sucursal del usuario, y el contador de avisos No leída (H26).
 export type RolUsuario =
   | "GERENTE"
   | "MESERO"
@@ -26,33 +24,35 @@ type EstadoSesion = {
   sucursal: SucursalSesion | null;
   cargando: boolean;
   cargarUsuario: () => Promise<UsuarioSesion | null>;
-  // La sucursal la decide el backend a partir de la sesión;
-  // el frontend solo la guarda para mostrarla.
   guardarSucursal: (sucursal: SucursalSesion) => void;
-  // H26: contador de avisos No leída, usado por la campana del encabezado.
   noLeidas: number;
   cargarNoLeidas: () => Promise<void>;
 };
 
-export const useSesion = create<EstadoSesion>((set, get) => ({
+export const useSesion = create<EstadoSesion>((set) => ({
   usuario: null,
   sucursal: null,
   cargando: false,
 
   cargarUsuario: async () => {
-    const actual = get().usuario;
-    if (actual) return actual;
-
     set({ cargando: true });
 
     try {
-      const respuesta = await fetch("/api/auth/me", { cache: "no-store" });
-      const usuario: UsuarioSesion | null = respuesta.ok
-        ? await respuesta.json()
-        : null;
+      const respuesta = await fetch("/api/auth/me", {
+        cache: "no-store",
+      });
+
+      if (!respuesta.ok) {
+        set({ usuario: null, sucursal: null });
+        return null;
+      }
+
+      const usuario: UsuarioSesion = await respuesta.json();
+
       set({ usuario });
       return usuario;
     } catch {
+      set({ usuario: null, sucursal: null });
       return null;
     } finally {
       set({ cargando: false });
@@ -69,7 +69,9 @@ export const useSesion = create<EstadoSesion>((set, get) => ({
         "/api/notificaciones/notifications/unread-count",
         { cache: "no-store" }
       );
+
       if (!respuesta.ok) return;
+
       const datos: { count: number } = await respuesta.json();
       set({ noLeidas: datos.count });
     } catch {
