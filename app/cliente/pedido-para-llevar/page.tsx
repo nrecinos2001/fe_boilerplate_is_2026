@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -28,6 +27,47 @@ type Result = {
   orderNumber: string;
   status: string;
 };
+
+type TakeawayDetail = {
+  orderId: string;
+  orderNumber: string;
+  status: string;
+  branch: { name: string; code: string };
+  items: Array<{
+    productName: string;
+    quantity: number;
+    unitPrice: number | string;
+    subtotal: number | string;
+  }>;
+  subtotal: number | string;
+  discount: number | string;
+  tax: number | string;
+  total: number | string;
+};
+
+type TakeawayReceipt = {
+  id: string;
+  number: number;
+  branch: { name: string; code: string };
+  issuedAt: string;
+  subtotal: number | string;
+  discount: number | string;
+  tax: number | string;
+  total: number | string;
+  paymentMethod: string;
+  items: TakeawayDetail["items"];
+  order: { id: string; orderNumber: string };
+};
+
+type TakeawayPaymentResponse = {
+  paymentId: string;
+  status: "APPROVED" | "REJECTED";
+  message: string;
+  receipt?: TakeawayReceipt;
+};
+
+
+
 
 function Icon({
   name,
@@ -167,6 +207,12 @@ export default function TakeawayPage() {
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [loadingDishes, setLoadingDishes] = useState(false);
   const [search, setSearch] = useState("");
+  const [detail, setDetail] = useState<TakeawayDetail | null>(null);
+  const [cardLast4, setCardLast4] = useState("");
+  const [paymentBusy, setPaymentBusy] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+  const [paymentMessage, setPaymentMessage] = useState("");
+  const [receipt, setReceipt] = useState<TakeawayReceipt | null>(null);
 
   const total = useMemo(
     () =>
@@ -349,6 +395,94 @@ export default function TakeawayPage() {
     );
   }
 
+  async function loadTakeawayDetail(orderId: string) {
+    setPaymentError("");
+    setDetail(null);
+
+    try {
+      const response = await fetch(
+        `/api/cliente/takeaway/${encodeURIComponent(orderId)}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          Array.isArray(data.message)
+            ? data.message.join(", ")
+            : data.message ?? "No se pudo consultar el detalle del pedido."
+        );
+      }
+
+      setDetail(data as TakeawayDetail);
+    } catch (err) {
+      setPaymentError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo consultar el detalle del pedido."
+      );
+    }
+  }
+
+  async function payTakeawayOrder() {
+    if (!result || !/^(4242|0002)$/.test(cardLast4) || paymentBusy || receipt) {
+      return;
+    }
+
+    setPaymentBusy(true);
+    setPaymentError("");
+    setPaymentMessage("");
+
+    try {
+      const response = await fetch(
+        `/api/cliente/takeaway/${encodeURIComponent(result.orderId)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cardLast4 }),
+        }
+      );
+
+      const data = (await response.json()) as TakeawayPaymentResponse & {
+        message?: string | string[];
+      };
+
+      if (!response.ok) {
+        throw new Error(
+          Array.isArray(data.message)
+            ? data.message.join(", ")
+            : data.message ?? "No se pudo procesar el pago."
+        );
+      }
+
+      if (data.status === "REJECTED") {
+        setPaymentMessage(
+          "Pago rechazado. Intente con otro método de pago"
+        );
+        setReceipt(null);
+        return;
+      }
+
+      if (data.status === "APPROVED" && data.receipt) {
+        setReceipt(data.receipt);
+        setPaymentMessage("Pago aprobado");
+        return;
+      }
+
+      throw new Error("La respuesta del pago no contiene un comprobante válido.");
+    } catch (err) {
+      setPaymentError(
+        err instanceof Error ? err.message : "No se pudo procesar el pago."
+      );
+    } finally {
+      setPaymentBusy(false);
+    }
+  }
+
   async function confirm() {
     if (!branchId || !cart.length || busy) return;
 
@@ -383,6 +517,10 @@ export default function TakeawayPage() {
 
       setResult(data);
       setCart([]);
+      setCardLast4("");
+      setPaymentMessage("");
+      setReceipt(null);
+      await loadTakeawayDetail(data.orderId);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Error desconocido."
@@ -396,6 +534,11 @@ export default function TakeawayPage() {
     setResult(null);
     setCart([]);
     setError("");
+    setDetail(null);
+    setCardLast4("");
+    setPaymentError("");
+    setPaymentMessage("");
+    setReceipt(null);
   }
 
   return (
@@ -510,50 +653,178 @@ export default function TakeawayPage() {
           )}
 
           {result ? (
-            /* PEDIDO REGISTRADO */
-            <section className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-green-50 text-green-600">
-                <Icon name="check" size={40} />
-              </div>
-
-              <h2 className="text-2xl font-bold text-[#20233e]">
-                ¡Pedido registrado!
-              </h2>
-
-              <p className="mt-3 text-sm leading-6 text-slate-500">
-                Tu pedido se registró correctamente y está pendiente
-                de pago.
-              </p>
-
-              <div className="mt-7 rounded-2xl bg-[#f5f6fb] p-6">
-                <p className="text-sm text-slate-500">
-                  Número de orden
+            <section className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+              <div className="mb-6 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 text-green-600">
+                  <Icon name="check" size={34} />
+                </div>
+                <h2 className="text-2xl font-bold text-[#20233e]">
+                  {receipt ? "¡Pago completado!" : "¡Pedido registrado!"}
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  {receipt
+                    ? "Tu pago fue aprobado y el pedido quedó confirmado."
+                    : "Revisa el detalle y realiza el pago para confirmar tu compra."}
                 </p>
-
-                <p className="mt-2 break-all text-3xl font-bold text-[#7564e8]">
-                  {result.orderNumber}
-                </p>
-
-                <div className="mt-5 flex justify-center">
-                  <span className="rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-700">
-                    Estado: {result.status}
-                  </span>
+                <div className="mt-5 inline-block rounded-xl bg-[#f5f6fb] px-6 py-4">
+                  <p className="text-xs text-slate-500">Número de orden</p>
+                  <p className="mt-1 text-2xl font-bold text-[#7564e8]">
+                    {result.orderNumber}
+                  </p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Estado: {detail?.status ?? result.status}
+                  </p>
                 </div>
               </div>
 
-              <p className="mt-6 text-sm leading-6 text-slate-500">
-                Conserva tu número de orden para realizar el pago
-                cuando el módulo de pagos esté disponible.
-              </p>
+              {paymentError && (
+                <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {paymentError}
+                  {!detail && !receipt && (
+                    <button
+                      type="button"
+                      onClick={() => void loadTakeawayDetail(result.orderId)}
+                      className="ml-2 font-semibold underline"
+                    >
+                      Volver a consultar
+                    </button>
+                  )}
+                </div>
+              )}
 
-              <button
-                type="button"
-                onClick={newOrder}
-                className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#7564e8] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#6250d5]"
-              >
-                <Icon name="plus" size={18} />
-                Realizar otro pedido
-              </button>
+              {detail ? (
+                <div className="rounded-2xl border border-slate-100 p-5">
+                  <h3 className="mb-4 text-lg font-bold text-[#20233e]">
+                    Detalle del pedido
+                  </h3>
+                  <div className="mb-4 flex flex-wrap justify-between gap-2 text-sm text-slate-500">
+                    <span>Sucursal: {detail.branch.name}</span>
+                    <span>Código: {detail.branch.code}</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {detail.items.map((item, index) => (
+                      <div key={`${item.productName}-${index}`} className="flex justify-between gap-4 border-b border-slate-100 pb-3 text-sm">
+                        <div>
+                          <p className="font-semibold text-[#252944]">{item.productName}</p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {item.quantity} × {money(item.unitPrice)}
+                          </p>
+                        </div>
+                        <p className="font-semibold text-[#252944]">{money(item.subtotal)}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-5 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Subtotal</span>
+                      <span>{money(detail.subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Descuento</span>
+                      <span>-{money(detail.discount)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">IVA (13%)</span>
+                      <span>{money(detail.tax)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-slate-200 pt-3 text-lg font-bold">
+                      <span>Total</span>
+                      <span className="text-[#7564e8]">{money(detail.total)}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : !paymentError ? (
+                <p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-500">
+                  Consultando el detalle del pedido...
+                </p>
+              ) : null}
+
+              {paymentMessage && (
+                <div role="status" className={`mt-5 rounded-xl p-4 text-sm font-semibold ${
+                  receipt ? "border border-green-200 bg-green-50 text-green-700" : "border border-red-200 bg-red-50 text-red-700"
+                }`}>
+                  {paymentMessage}
+                </div>
+              )}
+
+              {receipt ? (
+                <div className="mt-6 rounded-2xl border border-green-200 bg-green-50/50 p-5">
+                  <h3 className="text-lg font-bold text-[#20233e]">Comprobante de pago</h3>
+                  <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+                    <p><span className="text-slate-500">Comprobante:</span> #{receipt.number}</p>
+                    <p><span className="text-slate-500">Sucursal:</span> {receipt.branch.name}</p>
+                    <p><span className="text-slate-500">Fecha:</span> {new Date(receipt.issuedAt).toLocaleString("es-SV")}</p>
+                    <p><span className="text-slate-500">Método:</span> {receipt.paymentMethod}</p>
+                  </div>
+                  <div className="mt-5 border-t border-green-200 pt-4">
+                    <p className="mb-3 text-sm font-semibold text-[#20233e]">Productos</p>
+                    <div className="space-y-2 text-sm">
+                      {receipt.items.map((item, index) => (
+                        <div key={`${item.productName}-${index}`} className="flex justify-between gap-3">
+                          <span>{item.quantity} × {item.productName}</span>
+                          <span className="font-medium">{money(item.subtotal)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-2 border-t border-green-200 pt-4 text-sm">
+                    <div className="flex justify-between"><span>Subtotal</span><span>{money(receipt.subtotal)}</span></div>
+                    <div className="flex justify-between"><span>Descuento</span><span>-{money(receipt.discount)}</span></div>
+                    <div className="flex justify-between"><span>IVA</span><span>{money(receipt.tax)}</span></div>
+                    <div className="flex justify-between border-t border-green-200 pt-3 text-lg font-bold"><span>Total pagado</span><span>{money(receipt.total)}</span></div>
+                  </div>
+                </div>
+              ) : detail && (
+                <div className="mt-6 rounded-2xl border border-slate-200 p-5">
+                  <h3 className="text-lg font-bold text-[#20233e]">Pago en línea con tarjeta</h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Ingresa los últimos cuatro dígitos de la tarjeta para simular el pago.
+                  </p>
+                  <label className="mt-4 block text-sm font-medium text-slate-600">
+                    Últimos cuatro dígitos
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      maxLength={4}
+                      value={cardLast4}
+                      disabled={paymentBusy}
+                      onChange={(event) => {
+                        setCardLast4(event.target.value.replace(/\D/g, "").slice(0, 4));
+                        setPaymentMessage("");
+                        setPaymentError("");
+                      }}
+                      placeholder="4242"
+                      className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#7564e8] disabled:bg-slate-50"
+                    />
+                  </label>
+                  <p className="mt-2 text-xs leading-5 text-slate-400">
+                    Para la simulación: 4242 aprueba el pago y 0002 lo rechaza. No ingreses ni almacenes el número completo ni el CVV.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={paymentBusy || !/^(4242|0002)$/.test(cardLast4)}
+                    onClick={() => void payTakeawayOrder()}
+                    className="mt-5 flex w-full items-center justify-center rounded-xl bg-[#7564e8] px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-[#6250d5] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {paymentBusy ? "Procesando pago..." : `Pagar ${money(detail.total)}`}
+                  </button>
+                </div>
+              )}
+
+              <div className="mt-6 text-center">
+                <button
+                  type="button"
+                  onClick={newOrder}
+                  disabled={paymentBusy}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  <Icon name="plus" size={18} />
+                  Realizar otro pedido
+                </button>
+              </div>
             </section>
           ) : (
             <>
