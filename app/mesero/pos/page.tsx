@@ -401,6 +401,10 @@ export default function POS() {
 
   const [email, setEmail] = useState("");
 
+  const [customerLookupMessage, setCustomerLookupMessage] = useState("");
+
+  const [customerLookupLoading, setCustomerLookupLoading] = useState(false);
+
   const [items, setItems] = useState<Item[]>([]);
 
   const [accountId, setAccountId] = useState("");
@@ -605,6 +609,8 @@ export default function POS() {
 
     setEmail("");
 
+    setCustomerLookupMessage("");
+
     setMessage("");
 
     setError("");
@@ -691,6 +697,27 @@ export default function POS() {
 
     );
 
+  }
+
+  async function lookupCustomer() {
+    if (!email.trim() || customerLookupLoading || loading) {
+      setCustomerLookupMessage("Escribe un correo electrónico para buscar al cliente.");
+      return;
+    }
+
+    setCustomerLookupLoading(true);
+    setCustomerLookupMessage("");
+    try {
+      const customer = await api(`customers/lookup?email=${encodeURIComponent(email.trim())}`);
+      setEmail(customer.email);
+      setCustomerLookupMessage(`Cliente encontrado: ${customer.email}. Se asociará al abrir la cuenta.`);
+    } catch (err) {
+      setCustomerLookupMessage(
+        `${err instanceof Error ? err.message : "No se encontró el cliente."} Puedes continuar sin asociar un cliente.`,
+      );
+    } finally {
+      setCustomerLookupLoading(false);
+    }
   }
 
   async function open() {
@@ -927,7 +954,7 @@ export default function POS() {
 
   const canOpenAccount = Boolean(
 
-    !loading && !loadingData && tableId && selected?.status !== "RESERVED",
+    !loading && !loadingData && !customerLookupLoading && tableId && selected?.status !== "RESERVED",
 
   );
 
@@ -1003,6 +1030,13 @@ export default function POS() {
 
             Punto de venta
 
+          </Link>
+          <Link
+            href="/mesero/cuentas"
+            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-300 hover:bg-white/10"
+          >
+            <Icon name="cart" />
+            Cuentas
           </Link>
 
         </nav>
@@ -1373,7 +1407,10 @@ export default function POS() {
 
                   value={email}
 
-                  onChange={(event) => setEmail(event.target.value)}
+                  onChange={(event) => {
+                    setEmail(event.target.value);
+                    setCustomerLookupMessage("");
+                  }}
 
                   placeholder="cliente@ejemplo.com"
 
@@ -1382,6 +1419,31 @@ export default function POS() {
                   className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-[#7564e8]"
 
                 />
+
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={customerLookupLoading || loading || !email.trim()}
+                    onClick={() => void lookupCustomer()}
+                    className="rounded-lg border border-[#7564e8] px-3 py-2 text-xs font-semibold text-[#7564e8] hover:bg-violet-50 disabled:opacity-50"
+                  >
+                    {customerLookupLoading ? "Buscando..." : "Buscar cliente"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loading || !email.trim()}
+                    onClick={() => {
+                      setEmail("");
+                      setCustomerLookupMessage("La cuenta se abrirá sin cliente asociado.");
+                    }}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Continuar sin cliente
+                  </button>
+                </div>
+                {customerLookupMessage && (
+                  <p role="status" className="mt-2 text-xs text-slate-500">{customerLookupMessage}</p>
+                )}
 
               </label>
 
@@ -1423,6 +1485,14 @@ export default function POS() {
 
                 </span>
 
+              )}
+              {accountId && (
+                <Link
+                  href={`/mesero/cuentas/${accountId}`}
+                  className="rounded-xl border border-[#7564e8] px-4 py-2.5 text-sm font-semibold text-[#7564e8] hover:bg-violet-50"
+                >
+                  Consultar y cerrar cuenta
+                </Link>
               )}
 
             </div>

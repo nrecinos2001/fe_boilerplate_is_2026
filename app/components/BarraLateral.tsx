@@ -23,6 +23,7 @@ const opcionesPorRol: Record<RolUsuario, Opcion[]> = {
     { titulo: "Ventas", href: "/gerente/reportes/ventas", icono: "ventas" },
     { titulo: "Platillos más vendidos", href: "/gerente/reportes/platillos", icono: "estrella" },
     { titulo: "Horarios pico", href: "/gerente/reportes/horarios-pico", icono: "reloj" },
+    { titulo: "Ocupación proyectada", href: "/gerente/reportes/ocupacion-proyectada", icono: "ocupacion" },
     { titulo: "Calificaciones y reseñas", href: "/gerente/reportes/resenas", icono: "estrella" },
     { titulo: "Comparación de sucursales", href: "/gerente/reportes/comparacion-sucursales", icono: "comparar" },
     { titulo: "Configuración", icono: "cuadro" },
@@ -30,9 +31,18 @@ const opcionesPorRol: Record<RolUsuario, Opcion[]> = {
   MESERO: [
     { titulo: "Inicio", href: "/", icono: "inicio" },
     { titulo: "Punto de venta (POS)", href: "/mesero/pos", icono: "pos" },
+    {
+      titulo: "Disponibilidad de mesas",
+      href: "/mesero/mesas/disponibilidad",
+      icono: "mesas",
+    },
+    { titulo: "Cuentas", href: "/mesero/cuentas", icono: "cuentas" },
+    { titulo: "Comprobantes", href: "/mesero/comprobantes", icono: "cuentas" },
   ],
   CLIENTE: [
     { titulo: "Inicio", href: "/", icono: "inicio" },
+    { titulo: "Reservas", href: "/reservas/nueva", icono: "reservas" },
+    { titulo: "Mis reservas", href: "/cliente/reservas", icono: "reservas" },
     { titulo: "Consultar menú", href: "/menu", icono: "menu" },
     {
       titulo: "Pedido para llevar",
@@ -111,6 +121,17 @@ function Icono({ nombre, size = 20 }: { nombre: string; size?: number }) {
           <path d="M12 7v5l3 2" />
         </svg>
       );
+    case "ocupacion":
+      return (
+        <svg {...base}>
+          <path d="M4 20V5M4 20h17" />
+          <path d="m7 15 4-4 3 2 5-7" />
+          <circle cx="7" cy="15" r="1" fill="currentColor" />
+          <circle cx="11" cy="11" r="1" fill="currentColor" />
+          <circle cx="14" cy="13" r="1" fill="currentColor" />
+          <circle cx="19" cy="6" r="1" fill="currentColor" />
+        </svg>
+      );
     case "pos":
       return (
         <svg {...base}>
@@ -118,11 +139,35 @@ function Icono({ nombre, size = 20 }: { nombre: string; size?: number }) {
           <path d="M3 10h18M8 15h3M15 15h2" />
         </svg>
       );
+    case "mesas":
+      return (
+        <svg {...base}>
+          <rect x="4" y="5" width="16" height="9" rx="2" />
+          <path d="M7 14v5M17 14v5M2 9h2M20 9h2" />
+          <circle cx="8" cy="9.5" r=".7" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="9.5" r=".7" fill="currentColor" stroke="none" />
+          <circle cx="16" cy="9.5" r=".7" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case "cuentas":
+      return (
+        <svg {...base}>
+          <rect x="5" y="3" width="14" height="18" rx="2" />
+          <path d="M8 8h8M8 12h8M8 16h5" />
+        </svg>
+      );
     case "llevar":
       return (
         <svg {...base}>
           <path d="M5 9h14l-1 12H6L5 9Z" />
           <path d="M9 9V6a3 3 0 0 1 6 0v3" />
+        </svg>
+      );
+    case "reservas":
+      return (
+        <svg {...base}>
+          <rect x="3" y="5" width="18" height="16" rx="2" />
+          <path d="M16 3v4M8 3v4M3 10h18M8 14h3M8 17h6" />
         </svg>
       );
     case "puntos":
