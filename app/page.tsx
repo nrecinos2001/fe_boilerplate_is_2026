@@ -245,8 +245,8 @@ export default async function Home() {
   );
 
   if (response.status === 401) {
-    redirect("/login");
-  }
+  return <Welcome />;
+}
 
   if (!response.ok) {
     throw new Error("No se pudo obtener el usuario.");
